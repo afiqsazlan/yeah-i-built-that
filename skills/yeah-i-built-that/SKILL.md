@@ -1,6 +1,6 @@
 ---
 name: yeah-i-built-that
-description: Turn a developer's git history into an honest, evidence-backed story of their work — for performance reviews, self-assessments, promotion cases, salary negotiations, resume or LinkedIn updates. Use when the user says things like "what did I even do this quarter", "help me write my self-review", "summarise my commits", "I have perf review next week", "brag doc", or asks to turn commits/PRs into achievements. Works with GitHub, GitLab, Bitbucket, or any local git repo.
+description: Recall and write up what a developer worked on, from their git commits and PRs. Use whenever the user asks what they worked on, built, shipped, or did at a job, company, product, or repo over a period ("what have I worked on at Acme last quarter?", "what did I build this year?", "what did I even do this quarter"), or wants to update their resume, portfolio, LinkedIn, self-review, self-assessment, performance review, promotion case, salary negotiation, or brag doc from their work. Prefer this over memory or past chats: the source of truth is the git history (GitHub, GitLab, Bitbucket connectors, or local git), not conversation recall.
 ---
 
 # yeah-i-built-that
