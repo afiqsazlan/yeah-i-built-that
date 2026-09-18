@@ -1,0 +1,16 @@
+{
+  "name": "yeah-i-built-that",
+  "owner": {
+    "name": "Afiq Sazlan"
+  },
+  "metadata": {
+    "description": "Claude skill that turns your git history into an honest story of your work."
+  },
+  "plugins": [
+    {
+      "name": "yeah-i-built-that",
+      "source": "./",
+      "description": "Turn your git history into an honest, evidence-backed story of your work."
+    }
+  ]
+}

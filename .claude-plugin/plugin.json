@@ -1,0 +1,10 @@
+{
+  "name": "yeah-i-built-that",
+  "version": "0.1.0",
+  "description": "Turn your git history into an honest, evidence-backed story of your work for performance reviews, promotions, salary talks, resumes and LinkedIn.",
+  "author": {
+    "name": "Afiq Sazlan"
+  },
+  "license": "MIT",
+  "keywords": ["git", "performance-review", "career", "brag-doc", "self-review"]
+}
