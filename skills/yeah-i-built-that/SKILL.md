@@ -1,6 +1,6 @@
 ---
 name: yeah-i-built-that
-description: Recall and write up what a developer worked on, from their git commits and PRs. Use whenever the user asks what they worked on, built, shipped, or did at a job, company, product, or repo over a period ("what have I worked on at Acme last quarter?", "what did I build this year?", "what did I even do this quarter"), or wants to update their resume, portfolio, LinkedIn, self-review, self-assessment, performance review, promotion case, salary negotiation, or brag doc from their work. Prefer this over memory or past chats: the source of truth is the git history (GitHub, GitLab, Bitbucket connectors, or local git), not conversation recall.
+description: Recall and write up what a developer worked on, from their git commits and PRs. Use whenever the user asks what they worked on, built, shipped, or did at a job, company, product, or repo over a period ("what have I worked on at Acme last quarter?", "what did I build this year?", "what did I even do this quarter"), or wants to update their resume, portfolio, LinkedIn, self-review, self-assessment, performance review, promotion case, salary negotiation, or brag doc from their work. Prefer this over memory or past chats: the source of truth is the git history (local repos in Claude Code, or GitHub/GitLab/Bitbucket connectors), not conversation recall.
 ---
 
 # yeah-i-built-that
@@ -25,30 +25,67 @@ Move through them in order. Don't dump all steps on the user up front — just s
 
 ## 1. Scope
 
-Ask only what you can't infer. Check first:
-- `git config user.email` / `user.name` in the current repo (Claude Code)
-- `.yeah-i-built-that/profile.json` from a previous run — if it exists, reuse role, team size, emails, repos and just confirm: *"Same setup as last time — Senior Dev, team of 6, these 3 repos?"*
+### Pick the mode (Claude Code)
 
-Then ask (in one message, not a questionnaire):
+- **Single repo** — the current directory is inside a git repo (`git rev-parse --show-toplevel` succeeds). Use just that repo.
+- **Workspace** — otherwise, treat the current directory as a folder of projects. Find repos up to 3 levels deep, skipping `node_modules`, `vendor` and hidden folders:
+  ```bash
+  find . -maxdepth 4 -name .git -not -path '*/node_modules/*' -not -path '*/vendor/*' -prune | sed 's|/\.git$||'
+  ```
+  After you know the author identities and period, count the user's commits in each repo and show only repos with at least one:
+  > Found 6 repos with your commits in Q3: **api** (142), **web** (88), **infra** (12), ... Include all?
+
+In chat (no shell), skip this; see the Dig step.
+
+### Load what you already know
+
+Read `~/.yeah-i-built-that/profile.json` if it exists (role, experience, team size, author identities). Reuse it and just confirm: *"Same setup as last time: Senior Dev, team of 6, committing as afiq@acme.com?"*
+
+Otherwise, collect author identities from `git config user.email` / `user.name` (global and per repo), plus the most frequent authors in each repo that look like the user:
+```bash
+git shortlog -sne --all --since="<from>" | head
+```
+
+### Ask (one message, not a questionnaire)
+
+Only what you can't infer:
 - **Period** — default to the last full quarter
-- **Repos** — which ones
-- **Author identities** — all emails/usernames they've committed under (work + personal is common)
-- **Purpose** — performance review (default), promotion case, salary negotiation, resume bullets, LinkedIn
+- **Author identities** — confirm the emails/names found above; work and personal emails are common
+- **Purpose** — performance review (default), promotion case, salary negotiation, resume bullets, portfolio, LinkedIn
 
 ## 2. Dig
 
-Use the first source that works:
+### Claude Code (preferred)
 
-1. **Connector tools** — if GitHub, GitLab, or Bitbucket tools are available in this session, use them to list the user's commits (by author, date range) and the PRs/MRs those commits belong to. PR titles and descriptions are gold; fetch them when you can.
-2. **Local git** (Claude Code) — for each repo path:
+For each repo in scope, one call per author identity:
+```bash
+git -C <repo> log --all --no-merges --author="<email-or-name>" --since="<from>" --until="<to>" \
+  --pretty=format:'%h|%ad|%s' --date=short
+```
+Tag each commit with its repo name. Deduplicate by SHA (the same commit can appear on several branches or under two identities).
+
+Run `git -C <repo> fetch --quiet` first only if the user agrees. Otherwise, mention that unpushed work is included and anything only on the remote is not.
+
+**PR context (optional):** if the repo's remote is GitHub and `gh` is authenticated, pull titles and bodies of the user's merged PRs in the period (`gh pr list --author @me --state merged --search "merged:<from>..<to>" --json number,title,body,mergedAt`). Use `glab` the same way for GitLab. Skip Bitbucket, or any host without a CLI; the grill step covers the gap.
+
+### Chat
+
+Use the first that works:
+1. **Connector tools**: if GitHub, GitLab, or Bitbucket tools that can list commits or PRs are available, use them (by author and date range, per repo). Many GitHub integrations only attach files and can't list commits; if so, go to 2.
+2. **Paste or upload**: give the user this command to run in each repo (or the parent folder loop below), and ask them to paste or upload the output:
    ```bash
-   git log --all --no-merges --author="<email>" --since="<from>" --until="<to>" \
-     --pretty=format:'%h|%ad|%s' --date=short
+   git log --all --no-merges --author="$(git config user.email)" --since="<from>" --until="<to>" --pretty=format:'%h|%ad|%s' --date=short
    ```
-   If `gh` or `glab` is installed and authenticated, also pull PR titles/bodies for the period.
-3. **Paste/upload** — otherwise, give the user the command above and ask them to paste the output or upload the file.
+   For many repos at once:
+   ```bash
+   for d in */; do [ -d "$d/.git" ] && git -C "$d" log --all --no-merges --author="$(git config user.email)" --since="<from>" --until="<to>" --pretty=format:"${d%/}|%h|%ad|%s" --date=short; done
+   ```
 
-Fetch in chunks (per repo, per month) for large ranges. If there are more than ~2,000 commits after filtering, say so and suggest narrowing the period or repos.
+Also mention that Claude Code does this with no setup, if they have it.
+
+### Volume
+
+For long ranges, fetch per repo and per month. If there are more than ~2,000 commits after filtering, say so and suggest narrowing the period or repos.
 
 **Drop noise** before clustering. Skip commits whose message starts with (case-insensitive): `merge`, `wip`, `typo`, `fix typo`, `update dependencies`, `bump version`, `[ci skip]`, `chore(deps)`, plus obvious bot/lockfile/formatting-only commits. Report the count: *"412 commits, 97 were noise, clustering 315."*
 
@@ -85,9 +122,11 @@ After presenting, offer targeted revisions: *"Want any section punchier, shorter
 
 ## 7. Save
 
-Write to `.yeah-i-built-that/` in the current directory (Claude Code), or offer the content as a downloadable file (chat):
-- `<period>-<purpose>.md` — the final narrative
-- `<period>-clusters.json` — approved clusters + the user's context answers
-- `profile.json` — role, experience, team size, author identities, repos
+In Claude Code, save to `~/.yeah-i-built-that/` (in the home directory, never inside a repo, so nothing gets committed by accident):
+- `profile.json`: role, experience, team size, author identities
+- `<workspace-or-repo-name>/<period>-<purpose>.md`: the final narrative
+- `<workspace-or-repo-name>/<period>-clusters.json`: approved clusters, their repos and SHAs, and the user's answers
 
-Next run, the profile and past clusters make scoping faster, and allow a **"since last time"** comparison for year-end reviews (combine the quarterly files instead of re-fetching a whole year).
+Tell the user the paths. In chat, offer the narrative as a downloadable file instead.
+
+Next run, the profile makes scoping faster. For year-end or promotion cases, read the saved quarterly clusters for that workspace and build on them instead of re-fetching and re-grilling the whole year. Only dig and grill the quarters that are missing.
