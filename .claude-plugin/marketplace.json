@@ -1,10 +1,11 @@
 {
-  "name": "yeah-i-built-that",
+  "name": "afiqsazlan",
   "owner": {
-    "name": "Afiq Sazlan"
+    "name": "Afiq Sazlan",
+    "url": "https://www.afiqsazlan.com"
   },
   "metadata": {
-    "description": "Claude skill that turns your git history into an honest story of your work."
+    "description": "Afiq Sazlan's Claude plugins."
   },
   "plugins": [
     {

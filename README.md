@@ -25,7 +25,7 @@ Works with **GitHub, GitLab, Bitbucket**, or any local git repo.
 
 ```
 /plugin marketplace add afiqsazlan/yeah-i-built-that
-/plugin install yeah-i-built-that@yeah-i-built-that
+/plugin install yeah-i-built-that@afiqsazlan
 ```
 
 Then, in any repo:
